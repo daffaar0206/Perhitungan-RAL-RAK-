@@ -48,5 +48,5 @@ curl -X POST http://localhost:5000/post_hoc \
 # - SciPy
 # - NumPy
 
-# Author: [Your Name]
+# Author: [daffaar0206]
 # License: MIT
