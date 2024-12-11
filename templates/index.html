@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Data Penelitian</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            position: relative;
+            min-height: 100vh;
+        }
+        body::before {
+            content: "by daffaa_ar";
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: rgba(0, 0, 0, 0.1);
+            transform: rotate(-45deg);
+            z-index: -1;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            pointer-events: none;
+        }
+        .treatment-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .table-responsive {
+            margin-top: 15px;
+        }
+        .notation {
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="mb-4">Analisis Data Penelitian</h2>
+        
+        <div class="mb-3">
+            <label class="form-label">Pilih Rancangan:</label>
+            <select class="form-select" id="designType">
+                <option value="ral">RAL (Rancangan Acak Lengkap)</option>
+                <option value="rak">RAK (Rancangan Acak Kelompok)</option>
+                <option value="ral_factorial">RAL Faktorial</option>
+            </select>
+        </div>
+
+        <div id="standardDesign">
+            <div class="mb-3">
+                <label class="form-label">Jumlah Perlakuan:</label>
+                <input type="number" class="form-control" id="numTreatments" min="2" value="3">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Jumlah Ulangan:</label>
+                <input type="number" class="form-control" id="numReplications" min="2" value="3">
+            </div>
+
+            <div id="treatmentsContainer">
+                <button class="btn btn-primary mb-3" onclick="generateTables()">Generate Tabel</button>
+                <button class="btn btn-success mb-3 ms-2" onclick="generateRandomData()">Generate Random Data</button>
+                <div id="standardTableContainer"></div>
+            </div>
+        </div>
+
+        <div id="factorialDesign" style="display: none;">
+            <div class="mb-3">
+                <label class="form-label">Jumlah Level Faktor A:</label>
+                <input type="number" class="form-control" id="numFactorA" min="2" value="2">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Jumlah Level Faktor B:</label>
+                <input type="number" class="form-control" id="numFactorB" min="2" value="2">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Jumlah Ulangan:</label>
+                <input type="number" class="form-control" id="numFactorialReplications" min="2" value="3">
+            </div>
+
+            <div id="factorialContainer">
+                <button class="btn btn-primary mb-3" onclick="generateTables()">Generate Tabel</button>
+                <button class="btn btn-success mb-3 ms-2" onclick="generateRandomData()">Generate Random Data</button>
+                <div id="factorialTableContainer"></div>
+            </div>
+        </div>
+
+        <button class="btn btn-success mt-3" onclick="processData()">Analisis Data</button>
+
+        <div id="mainResults"></div>
+        <div id="postHocContainer" style="display: none;" class="mt-4">
+            <div class="form-group">
+                <label for="postHoc"><strong>Pilih Uji Lanjutan:</strong></label>
+                <select class="form-control" id="postHoc" style="max-width: 200px;">
+                    <option value="">Pilih uji lanjutan...</option>
+                    <option value="duncan">Duncan</option>
+                    <option value="bnj">BNJ (Tukey)</option>
+                </select>
+            </div>
+            <button id="runPostHocBtn" class="btn btn-primary mt-2" onclick="runPostHocAnalysis()">
+                Lakukan Uji Lanjutan
+            </button>
+        </div>
+        <div id="postHocResults"></div>
+    </div>
+
+    <script>
+        let currentDesign = 'ral';
+        let lastAnalysisResult = null;
+
+        document.getElementById('designType').addEventListener('change', function() {
+            currentDesign = this.value;
+            if (currentDesign === 'ral_factorial') {
+                document.getElementById('standardDesign').style.display = 'none';
+                document.getElementById('factorialDesign').style.display = 'block';
+            } else {
+                document.getElementById('standardDesign').style.display = 'block';
+                document.getElementById('factorialDesign').style.display = 'none';
+            }
+            generateTables();
+        });
+
+        function generateTables() {
+            if (currentDesign === 'ral_factorial') {
+                generateFactorialTables();
+            } else {
+                generateStandardTables();
+            }
+        }
+
+        function generateStandardTables() {
+            const container = document.getElementById('standardTableContainer');
+            const numTreatments = parseInt(document.getElementById('numTreatments').value);
+            const numReplications = parseInt(document.getElementById('numReplications').value);
+            
+            container.innerHTML = '';
+            
+            for (let i = 1; i <= numTreatments; i++) {
+                const treatmentDiv = document.createElement('div');
+                treatmentDiv.className = 'mb-4';
+                
+                const label = document.createElement('h5');
+                label.textContent = `Perlakuan ${i}`;
+                treatmentDiv.appendChild(label);
+                
+                const table = document.createElement('table');
+                table.className = 'table table-bordered';
+                
+                const tbody = document.createElement('tbody');
+                const tr = document.createElement('tr');
+                
+                for (let j = 1; j <= numReplications; j++) {
+                    const td = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.className = 'form-control';
+                    input.dataset.treatment = i;
+                    input.dataset.replication = j;
+                    input.step = 'any';
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                }
+                
+                tbody.appendChild(tr);
+                table.appendChild(tbody);
+                treatmentDiv.appendChild(table);
+                container.appendChild(treatmentDiv);
+            }
+        }
+
+        function generateFactorialTables() {
+            const container = document.getElementById('factorialTableContainer');
+            const numFactorA = parseInt(document.getElementById('numFactorA').value);
+            const numFactorB = parseInt(document.getElementById('numFactorB').value);
+            const numReplications = parseInt(document.getElementById('numFactorialReplications').value);
+            
+            container.innerHTML = '';
+            
+            for (let a = 1; a <= numFactorA; a++) {
+                for (let b = 1; b <= numFactorB; b++) {
+                    const combinationDiv = document.createElement('div');
+                    combinationDiv.className = 'mb-4';
+                    
+                    const label = document.createElement('h5');
+                    label.textContent = `Faktor A${a} B${b}`;
+                    combinationDiv.appendChild(label);
+                    
+                    const table = document.createElement('table');
+                    table.className = 'table table-bordered';
+                    
+                    const tbody = document.createElement('tbody');
+                    const tr = document.createElement('tr');
+                    
+                    for (let r = 1; r <= numReplications; r++) {
+                        const td = document.createElement('td');
+                        const input = document.createElement('input');
+                        input.type = 'number';
+                        input.className = 'form-control';
+                        input.dataset.factorA = a;
+                        input.dataset.factorB = b;
+                        input.dataset.replication = r;
+                        input.step = 'any';
+                        td.appendChild(input);
+                        tr.appendChild(td);
+                    }
+                    
+                    tbody.appendChild(tr);
+                    table.appendChild(tbody);
+                    combinationDiv.appendChild(table);
+                    container.appendChild(combinationDiv);
+                }
+            }
+        }
+
+        function collectData() {
+            return currentDesign === 'ral_factorial' ? collectFactorialData() : collectStandardData();
+        }
+
+        function collectStandardData() {
+            const data = [];
+            const inputs = document.querySelectorAll('#standardTableContainer input[type="number"]');
+            
+            inputs.forEach(input => {
+                const value = parseFloat(input.value);
+                if (!isNaN(value)) {
+                    const dataPoint = {
+                        treatment: parseInt(input.dataset.treatment),
+                        replication: parseInt(input.dataset.replication),
+                        value: value
+                    };
+                    data.push(dataPoint);
+                }
+            });
+            
+            return data;
+        }
+
+        function collectFactorialData() {
+            const data = [];
+            const inputs = document.querySelectorAll('#factorialTableContainer input[type="number"]');
+            
+            inputs.forEach(input => {
+                const value = parseFloat(input.value);
+                if (!isNaN(value)) {
+                    data.push({
+                        factor_a: parseInt(input.dataset.factorA),
+                        factor_b: parseInt(input.dataset.factorB),
+                        replication: parseInt(input.dataset.replication),
+                        value: value
+                    });
+                }
+            });
+            
+            return data;
+        }
+
+        function processData() {
+            const data = collectData();
+            if (data.length === 0) {
+                alert('Mohon isi data terlebih dahulu');
+                return;
+            }
+
+            // Hide post-hoc selection initially
+            document.getElementById('postHocContainer').style.display = 'none';
+            document.getElementById('postHocResults').innerHTML = '';
+            
+            const requestData = {
+                design_type: currentDesign,
+                data: data
+            };
+            
+            console.log('Process Data Request:', requestData);
+            
+            fetch('/process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log('Process Data Response:', result);
+                
+                // Store both the result and the original data
+                lastAnalysisResult = {
+                    ...result,
+                    originalData: data  // Store the original data array
+                };
+                
+                displayResults(result);
+                
+                // Show post-hoc selection if any effect is significant
+                if (result.significance && 
+                    ((typeof result.significance === 'string' && 
+                      (result.significance.includes('Berbeda nyata') || 
+                       result.significance.includes('Berbeda sangat nyata'))) ||
+                     (typeof result.significance === 'object' && 
+                      (result.significance.factor_a.includes('Berbeda nyata') || 
+                       result.significance.factor_a.includes('Berbeda sangat nyata') ||
+                       result.significance.factor_b.includes('Berbeda nyata') || 
+                       result.significance.factor_b.includes('Berbeda sangat nyata') ||
+                       result.significance.interaction.includes('Berbeda nyata') || 
+                       result.significance.interaction.includes('Berbeda sangat nyata'))))) {
+                    document.getElementById('postHocContainer').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('mainResults').innerHTML = `<div class="alert alert-danger">Error: ${error}</div>`;
+            });
+        }
+
+        function runPostHocAnalysis() {
+            const postHocType = document.getElementById('postHoc').value;
+            if (!postHocType) {
+                alert('Mohon pilih jenis uji lanjutan');
+                return;
+            }
+
+            if (!lastAnalysisResult || !lastAnalysisResult.originalData) {
+                alert('Mohon lakukan analisis data terlebih dahulu');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('postHocResults').innerHTML = '<div class="mt-3">Memproses uji lanjutan...</div>';
+
+            const postHocRequest = {
+                design_type: currentDesign,
+                data: lastAnalysisResult.originalData,  // Use the original data array
+                post_hoc_type: postHocType
+            };
+
+            console.log('Post-hoc Request:', postHocRequest);
+
+            fetch('/post_hoc', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(postHocRequest)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.error || 'An error occurred');
+                    });
+                }
+                return response.json();
+            })
+            .then(result => {
+                console.log('Post-hoc Response:', result);
+                displayPostHocResults(result);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('postHocResults').innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+            });
+        }
+
+        function displayPostHocResults(result) {
+            let html = '<div class="mt-4">';
+            html += '<h4>Hasil Uji Lanjutan</h4>';
+            
+            // Add table for post-hoc results
+            html += '<div class="table-responsive"><table class="table table-bordered">';
+            html += '<thead class="thead-light">';
+            html += '<tr><th>Perlakuan</th><th>Rata-rata</th><th>Notasi</th></tr>';
+            html += '</thead><tbody>';
+            
+            // Sort treatments by mean in descending order
+            const treatments = Object.keys(result.means).sort((a, b) => result.means[b] - result.means[a]);
+            
+            treatments.forEach(treatment => {
+                html += '<tr>';
+                html += `<td>${treatment}</td>`;
+                html += `<td>${result.means[treatment].toFixed(2)}</td>`;
+                html += `<td>${result.notations[treatment]}</td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            
+            // Add significance value if available
+            if (result.significance) {
+                html += `<p class="mt-3"><strong>Keterangan:</strong> ${result.significance}</p>`;
+            }
+            
+            html += '</div>';
+            document.getElementById('postHocResults').innerHTML = html;
+        }
+
+        function displayResults(result) {
+            if (result.error) {
+                document.getElementById('mainResults').innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+                return;
+            }
+
+            let html = '<div class="mt-4">';
+            
+            // Display summary statistics
+            html += '<h4>Statistik Deskriptif</h4>';
+            html += '<table class="table table-bordered">';
+            html += '<thead><tr><th>Perlakuan</th><th>Mean</th><th>Std Dev</th><th>N</th></tr></thead>';
+            html += '<tbody>';
+            for (let treatment in result.summary) {
+                html += `<tr>
+                    <td>${treatment}</td>
+                    <td>${result.summary[treatment].mean}</td>
+                    <td>${result.summary[treatment].std}</td>
+                    <td>${result.summary[treatment].count}</td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            
+            // Display ANOVA table
+            html += '<h4 class="mt-4">Tabel ANOVA</h4>';
+            html += '<table class="table table-bordered">';
+            html += '<thead><tr><th>SK</th><th>DB</th><th>JK</th><th>KT</th><th>F-hit</th><th>F-tab 5%</th><th>F-tab 1%</th></tr></thead>';
+            html += '<tbody>';
+            for (let i = 0; i < result.anova.Source.length; i++) {
+                html += `<tr>
+                    <td>${result.anova.Source[i]}</td>
+                    <td>${result.anova.DF[i]}</td>
+                    <td>${result.anova.SS[i]}</td>
+                    <td>${result.anova.MS[i]}</td>
+                    <td>${result.anova.F[i]}</td>
+                    <td>${result.anova.Ftab5[i] || '-'}</td>
+                    <td>${result.anova.Ftab1[i] || '-'}</td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            
+            // Display significance conclusion
+            html += '<div class="mt-3">';
+            if (result.significance) {
+                if (typeof result.significance === 'string') {
+                    // For RAL
+                    html += `<p><strong>Kesimpulan:</strong> ${result.significance}</p>`;
+                } else if (result.significance.factor_a) {
+                    // For RAL Factorial
+                    html += '<h4>Kesimpulan:</h4>';
+                    html += `<p><strong>1. Faktor A:</strong> ${result.significance.factor_a}</p>`;
+                    html += `<p><strong>2. Faktor B:</strong> ${result.significance.factor_b}</p>`;
+                    html += `<p><strong>3. Interaksi A×B:</strong> ${result.significance.interaction}</p>`;
+                } else {
+                    // For RAK
+                    html += `<p><strong>Kesimpulan Perlakuan:</strong> ${result.significance.treatment}</p>`;
+                    html += `<p><strong>Kesimpulan Kelompok:</strong> ${result.significance.block}</p>`;
+                }
+            }
+            
+            // Display CV
+            html += `<p><strong>Koefisien Keragaman:</strong> ${result.cv}%</p>`;
+            
+            html += '</div>';
+            
+            document.getElementById('mainResults').innerHTML = html;
+        }
+
+        function generateRandomData() {
+            const designType = document.getElementById('designType').value;
+            const inputs = document.querySelectorAll('#factorialTableContainer input[type="number"], #standardTableContainer input[type="number"]');
+            
+            if (designType === 'ral_factorial') {
+                inputs.forEach(input => {
+                    // Generate random number between 1 and 100 with 2 decimal places
+                    const randomValue = (Math.random() * 100).toFixed(2);
+                    input.value = randomValue;
+                });
+            } else {
+                inputs.forEach(input => {
+                    // Generate random number between 1 and 100 with 2 decimal places
+                    const randomValue = (Math.random() * 100).toFixed(2);
+                    input.value = randomValue;
+                });
+            }
+        }
+
+        // Initialize tables on page load
+        document.addEventListener('DOMContentLoaded', generateTables);
+    </script>
+</body>
+</html>
