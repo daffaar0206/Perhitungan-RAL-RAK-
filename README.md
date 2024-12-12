@@ -2,7 +2,7 @@
 
 # Clone repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/daffaar0206/Perhitungan-RAL-RAK-
 ```
 # Navigate to directory
 ```bash
