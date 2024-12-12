@@ -1,11 +1,13 @@
 # Statistical Analysis Web Application
 
 # Clone repository
+```bash
 git clone <repository-url>
-
+```
 # Navigate to directory
+```bash
 cd app
-
+```
 # Install dependencies
 ```bash
 pip install flask pandas scipy numpy
@@ -53,4 +55,4 @@ curl -X POST http://localhost:5000/post_hoc \
 # - NumPy
 
 # Author: [daffaar0206]
-# License: MIT
+
